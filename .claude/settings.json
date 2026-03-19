@@ -28,7 +28,14 @@
       "Bash(brew install:*)",
       "Bash(git init:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(gh repo:*)",
+      "Bash(script -q /dev/null sh -c 'printf \"\"\\\\n\"\" | npx tauri signer generate -w ~/.tauri/envconfig.key')",
+      "Bash(expect -c ':*)",
+      "Bash(gh secret:*)"
+    ],
+    "additionalDirectories": [
+      "/Users/zhangzhi/.tauri"
     ]
   }
 }

@@ -44,6 +44,48 @@
       </div>
     </section>
 
+    <!-- 软件更新 -->
+    <section class="settings-section">
+      <h3 class="section-title">软件更新</h3>
+
+      <div class="setting-row update-row">
+        <div class="setting-info">
+          <span class="setting-label">当前版本</span>
+          <span class="setting-desc">v{{ appVersion }}</span>
+        </div>
+        <div class="update-actions">
+          <template v-if="updateStatus === 'checking'">
+            <span class="update-hint">检查中...</span>
+          </template>
+          <template v-else-if="updateStatus === 'available'">
+            <span class="update-hint update-available">发现新版本 v{{ newVersion }}</span>
+            <button class="btn btn-primary" @click="installUpdate">下载更新</button>
+          </template>
+          <template v-else-if="updateStatus === 'downloading'">
+            <div class="progress-bar">
+              <div class="progress-fill" :style="{ width: downloadProgress + '%' }"></div>
+            </div>
+            <span class="update-hint">下载中 {{ downloadProgress }}%</span>
+          </template>
+          <template v-else-if="updateStatus === 'ready'">
+            <span class="update-hint update-available">下载完成，重启生效</span>
+            <button class="btn btn-success" @click="relaunch">立即重启</button>
+          </template>
+          <template v-else-if="updateStatus === 'latest'">
+            <span class="update-hint update-latest">已是最新版本</span>
+            <button class="btn btn-ghost" @click="checkForUpdate">重新检查</button>
+          </template>
+          <template v-else-if="updateStatus === 'error'">
+            <span class="update-hint update-error">{{ updateError }}</span>
+            <button class="btn btn-ghost" @click="checkForUpdate">重试</button>
+          </template>
+          <template v-else>
+            <button class="btn btn-primary" @click="checkForUpdate">检查更新</button>
+          </template>
+        </div>
+      </div>
+    </section>
+
     <!-- 预览 -->
     <section class="settings-section">
       <h3 class="section-title">预览</h3>
@@ -56,13 +98,96 @@
         </div>
       </div>
     </section>
+
+    <!-- 关于 -->
+    <section class="settings-section">
+      <h3 class="section-title">关于</h3>
+      <div class="about-info">
+        <div class="about-row">
+          <span class="about-label">应用名称</span>
+          <span class="about-value">EnvConfig Manager</span>
+        </div>
+        <div class="about-row">
+          <span class="about-label">版本</span>
+          <span class="about-value">v{{ appVersion }}</span>
+        </div>
+        <div class="about-row">
+          <span class="about-label">技术栈</span>
+          <span class="about-value">Tauri 2 + Vue 3 + TypeScript</span>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted } from 'vue'
 import { useThemeStore } from '../stores/theme'
+import { getVersion } from '@tauri-apps/api/app'
+import { check, type Update } from '@tauri-apps/plugin-updater'
+import { relaunch as appRelaunch } from '@tauri-apps/plugin-process'
 
 const themeStore = useThemeStore()
+
+const appVersion = ref('0.0.0')
+const updateStatus = ref<'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'latest' | 'error'>('idle')
+const newVersion = ref('')
+const downloadProgress = ref(0)
+const updateError = ref('')
+let pendingUpdate: Update | null = null
+
+onMounted(async () => {
+  try {
+    appVersion.value = await getVersion()
+  } catch {
+    appVersion.value = '0.1.0'
+  }
+})
+
+async function checkForUpdate() {
+  updateStatus.value = 'checking'
+  updateError.value = ''
+  try {
+    const update = await check()
+    if (update) {
+      pendingUpdate = update
+      newVersion.value = update.version
+      updateStatus.value = 'available'
+    } else {
+      updateStatus.value = 'latest'
+    }
+  } catch (e) {
+    updateError.value = '检查更新失败，请检查网络'
+    updateStatus.value = 'error'
+    console.error('Update check failed:', e)
+  }
+}
+
+async function installUpdate() {
+  if (!pendingUpdate) return
+  updateStatus.value = 'downloading'
+  downloadProgress.value = 0
+  try {
+    await pendingUpdate.downloadAndInstall((event) => {
+      if (event.event === 'Started' && event.data.contentLength) {
+        downloadProgress.value = 0
+      } else if (event.event === 'Progress') {
+        downloadProgress.value = Math.min(99, downloadProgress.value + Math.round((event.data.chunkLength / (pendingUpdate as any).contentLength || 1) * 100))
+      } else if (event.event === 'Finished') {
+        downloadProgress.value = 100
+      }
+    })
+    updateStatus.value = 'ready'
+  } catch (e) {
+    updateError.value = '下载更新失败'
+    updateStatus.value = 'error'
+    console.error('Update download failed:', e)
+  }
+}
+
+async function relaunch() {
+  await appRelaunch()
+}
 </script>
 
 <style scoped>
@@ -181,6 +306,51 @@ const themeStore = useThemeStore()
   font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
 }
 
+/* Update section */
+.update-row {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.update-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.update-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.update-available {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.update-latest {
+  color: var(--success);
+}
+
+.update-error {
+  color: var(--danger);
+}
+
+.progress-bar {
+  width: 120px;
+  height: 6px;
+  background: var(--bg-surface);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
 /* Preview */
 .preview-card {
   background: var(--bg-secondary);
@@ -199,19 +369,37 @@ const themeStore = useThemeStore()
   white-space: pre;
 }
 
-.preview-comment {
+.preview-comment { color: var(--text-muted); }
+.preview-keyword { color: var(--accent); }
+.preview-var { color: var(--warning); }
+.preview-string { color: var(--success); }
+
+/* About */
+.about-info {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 0;
+}
+
+.about-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 16px;
+}
+
+.about-row + .about-row {
+  border-top: 1px solid var(--border);
+}
+
+.about-label {
+  font-size: 13px;
   color: var(--text-muted);
 }
 
-.preview-keyword {
-  color: var(--accent);
-}
-
-.preview-var {
-  color: var(--warning);
-}
-
-.preview-string {
-  color: var(--success);
+.about-value {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 500;
 }
 </style>
