@@ -1,52 +1,67 @@
 # EnvConfig Manager
 
-跨平台桌面配置文件与环境变量管理工具，基于 Tauri 2 + Vue 3 + TypeScript 构建。
+English | [中文](./README.zh-CN.md)
 
-## 功能特性
+A cross-platform desktop app for managing shell configuration files and environment variables. Built with Tauri 2 + Vue 3 + TypeScript.
 
-### P0 - 核心功能
-- **配置文件管理** — 扫描并编辑 `.zshrc`、`.bashrc`、`.bash_profile` 等配置文件，内置 CodeMirror 6 代码编辑器
-- **环境变量管理** — 查看/新增/编辑/删除环境变量，支持按分组展示和搜索过滤
-- **备份回滚** — 操作前自动创建备份快照，支持手动备份与一键还原
-- **权限提升** — macOS/Linux 通过系统授权对话框提权，Windows 通过 UAC
+## Features
 
-### P1 - 增强功能
-- **配置校验** — 实时语法检查（`bash -n`/`zsh -n`）、PATH 路径存在性检测、重复 export/alias 冲突检测
-- **多配置切换** — SwitchHosts 风格的配置集管理，toggle 开关快速启用/禁用，支持导入/导出
+- **Config File Editor** — Scan and edit `.zshrc`, `.bashrc`, `.bash_profile` and more with a built-in CodeMirror 6 editor
+- **Environment Variables** — View, create, edit, and delete env vars with grouping and search
+- **Backup & Restore** — Auto-backup before changes, manual snapshots, one-click rollback
+- **Config Profiles** — SwitchHosts-style profile management with toggle switches to quickly enable/disable config sets, import/export support
+- **Config Validation** — Real-time syntax checking (`bash -n` / `zsh -n`), PATH existence detection, duplicate export/alias detection
+- **Theme** — Light/Dark theme (Catppuccin Latte/Mocha), adjustable editor font size
+- **Auto Update** — In-app updates via GitHub Releases
+- **Privilege Elevation** — macOS/Linux system auth dialog, Windows UAC
 
-### P3 - 个性化
-- **主题设置** — 浅色/深色主题切换（Catppuccin 配色），编辑器字体大小调整
-- **自动更新** — 基于 GitHub Releases 的应用内自动更新
+## Screenshots
 
-## 技术栈
+<!-- Add screenshots here -->
 
-| 层级 | 技术 |
-|------|------|
-| 桌面框架 | Tauri 2.x (Rust) |
-| 前端 | Vue 3 + TypeScript + Vite |
-| 状态管理 | Pinia |
-| 路由 | Vue Router 4 |
-| 编辑器 | CodeMirror 6 |
-| 样式 | CSS Variables (Catppuccin 主题) |
+## Tech Stack
 
-## 开发
+| Layer | Technology |
+|-------|------------|
+| Desktop Framework | Tauri 2.x (Rust) |
+| Frontend | Vue 3 + TypeScript + Vite |
+| State Management | Pinia |
+| Router | Vue Router 4 |
+| Code Editor | CodeMirror 6 |
+| Styling | CSS Variables (Catppuccin theme) |
+
+## Installation
+
+Download the latest release from the [Releases](https://github.com/AZSs/envconfig-manager/releases) page:
+
+- **macOS** (Apple Silicon / Intel) — `.dmg`
+- **Windows** — `.msi` / `.exe`
+
+## Development
+
+### Prerequisites
+
+- Node.js 18+
+- Rust 1.70+
+- [Tauri CLI prerequisites](https://v2.tauri.app/start/prerequisites/)
+
+### Setup
 
 ```bash
-# 安装依赖
+# Install dependencies
 npm install
 
-# 启动开发模式
+# Start dev mode
 npm run tauri:dev
 
-# 构建 DMG
+# Build for production
 npm run tauri:build
 ```
 
-## 系统要求
+## System Requirements
 
 - macOS 12+ (Apple Silicon / Intel)
-- Node.js 18+
-- Rust 1.70+
+- Windows 10/11
 
 ## License
 
