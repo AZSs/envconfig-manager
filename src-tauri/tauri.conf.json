@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "identifier": "com.envconfig.manager",
   "bundle": {
-    "createUpdaterArtifacts": "v2",
+    "createUpdaterArtifacts": "v1Compatible",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
