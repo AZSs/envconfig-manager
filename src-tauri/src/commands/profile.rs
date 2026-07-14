@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 
+use crate::commands::config;
 use crate::utils::platform;
 
 // ======================== 数据结构 ========================
@@ -88,30 +89,6 @@ fn save_profiles(profiles: &[ConfigProfile]) -> Result<(), String> {
     }
     let content = serde_json::to_string_pretty(profiles).map_err(|e| format!("序列化配置集失败: {}", e))?;
     fs::write(&path, content).map_err(|e| format!("保存配置集失败: {}", e))
-}
-
-/// 为文件创建简单备份（复制到 ~/.envconfig/backups/ 并添加时间戳后缀）
-fn create_simple_backup(file_path: &str) -> Result<(), String> {
-    let source = PathBuf::from(file_path);
-    if !source.exists() {
-        return Ok(()); // 文件不存在则跳过备份
-    }
-
-    let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
-    let backup_dir = home.join(".envconfig").join("backups");
-    fs::create_dir_all(&backup_dir).map_err(|e| format!("创建备份目录失败: {}", e))?;
-
-    let file_name = source
-        .file_name()
-        .unwrap_or_default()
-        .to_string_lossy()
-        .to_string();
-    let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S").to_string();
-    let backup_name = format!("{}_{}.bak", file_name, timestamp);
-    let backup_path = backup_dir.join(&backup_name);
-
-    fs::copy(&source, &backup_path).map_err(|e| format!("备份文件失败: {}", e))?;
-    Ok(())
 }
 
 /// 获取当前时间字符串
@@ -207,21 +184,15 @@ pub fn apply_profile(id: String) -> Result<Vec<String>, String> {
 
     let mut modified_paths: Vec<String> = Vec::new();
 
-    // 写入配置文件
+    // 写入配置文件(统一入口:自动备份 + 原子写)
     for entry in &profile.entries {
-        // 创建备份
-        create_simple_backup(&entry.file_path)?;
-
-        // 确保父目录存在
-        let target = PathBuf::from(&entry.file_path);
-        if let Some(parent) = target.parent() {
-            fs::create_dir_all(parent)
-                .map_err(|e| format!("创建目录失败 {}: {}", parent.display(), e))?;
-        }
-
-        // 写入内容
-        fs::write(&target, &entry.content)
-            .map_err(|e| format!("写入文件失败 {}: {}", entry.file_path, e))?;
+        config::write_config_file_into(
+            &config::backup_dir_default(),
+            &config::meta_path_default(),
+            &entry.file_path,
+            &entry.content,
+        )
+        .map_err(|e| format!("写入文件失败 {}: {}", entry.file_path, e))?;
 
         modified_paths.push(entry.file_path.clone());
     }
@@ -321,18 +292,15 @@ pub fn toggle_profile(id: String, active: bool) -> Result<Vec<String>, String> {
     let mut modified_paths: Vec<String> = Vec::new();
 
     if active {
-        // 启用：写入配置文件并生效
+        // 启用：写入配置文件并生效(统一入口:自动备份 + 原子写)
         for entry in &profile.entries {
-            create_simple_backup(&entry.file_path)?;
-
-            let target = PathBuf::from(&entry.file_path);
-            if let Some(parent) = target.parent() {
-                fs::create_dir_all(parent)
-                    .map_err(|e| format!("创建目录失败 {}: {}", parent.display(), e))?;
-            }
-
-            fs::write(&target, &entry.content)
-                .map_err(|e| format!("写入文件失败 {}: {}", entry.file_path, e))?;
+            config::write_config_file_into(
+                &config::backup_dir_default(),
+                &config::meta_path_default(),
+                &entry.file_path,
+                &entry.content,
+            )
+            .map_err(|e| format!("写入文件失败 {}: {}", entry.file_path, e))?;
 
             modified_paths.push(entry.file_path.clone());
         }

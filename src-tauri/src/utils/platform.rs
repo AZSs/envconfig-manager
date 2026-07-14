@@ -1,6 +1,8 @@
 use std::collections::HashSet;
 use std::process::Command;
 
+use crate::utils::shell;
+
 #[cfg(unix)]
 extern crate libc;
 
@@ -171,7 +173,7 @@ pub fn source_config_file(path: &str) -> Result<String, String> {
         let shell_name = if shell.contains("zsh") { "zsh" } else { "bash" };
 
         let output = Command::new(shell_name)
-            .args(["-ilc", &format!("source '{}' && env", path)])
+            .args(["-ilc", &format!("source {} && env", shell::shell_quote_single(path))])
             .output()
             .map_err(|e| format!("执行 source 失败: {}", e))?;
 
@@ -227,7 +229,7 @@ pub fn set_env_variable(name: &str, value: &str, scope: &str) -> Result<(), Stri
         };
 
         let content = std::fs::read_to_string(&config_path).unwrap_or_default();
-        let export_line = format!("export {}=\"{}\"", name, value);
+        let export_line = format!("export {}={}", name, shell::shell_quote_double(value));
 
         let pattern = format!("export {}=", name);
         let new_content = if content.contains(&pattern) {

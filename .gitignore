@@ -29,3 +29,5 @@ src-tauri/target/
 # Claude Code
 .claude/
 
+# Superpowers visual brainstorming
+.superpowers/

@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::process::Command;
 
 use crate::utils::platform;
+use crate::utils::shell;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EnvVariable {
@@ -108,12 +109,9 @@ pub fn get_env_variables() -> Result<Vec<EnvVariable>, String> {
 /// 设置环境变量
 #[tauri::command]
 pub fn set_env_variable(name: String, value: String, scope: String) -> Result<(), String> {
-    // 格式校验
-    if name.is_empty() {
-        return Err("变量名不能为空".to_string());
-    }
-    if name.contains(' ') || name.contains('=') {
-        return Err("变量名包含非法字符".to_string());
+    // 变量名校验:仅允许 [A-Za-z_][A-Za-z0-9_]*
+    if !shell::is_valid_var_name(&name) {
+        return Err("变量名非法:仅允许字母、数字、下划线,且不能以数字开头".to_string());
     }
 
     platform::set_env_variable(&name, &value, &scope)
